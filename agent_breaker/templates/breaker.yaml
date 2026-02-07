@@ -1,0 +1,30 @@
+version: "1.0"
+
+budget:
+  max_tokens: 5000
+
+target:
+  type: "langgraph"
+  path: "my_agent.py"
+  attr: "graph"
+  input_key: "user_query"
+  system_prompt:
+    source: "inline"
+    value: "You are a helpful assistant specialized in financial advice."
+    log: false
+
+generator:
+  strategy: "template"  # template | llm | hybrid
+  domain: "general"     # finance | healthcare | legal | devops | customer_service | hr | ecommerce | content_moderation | general
+  seed: 42              # for reproducibility
+
+attacks:
+  - name: "prompt_injection"
+    enabled: true
+    max_api_calls: 10      # Limit API calls per attack (budget control for free-tier users)
+
+judge:
+  model: "behavior"  # Rule-based judge (no API costs). Future: gpt-4o-mini, claude-sonnet-4
+  criteria:
+    - refusal_detection
+    - data_leakage

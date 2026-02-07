@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: agent-breaker
+Version: 0.1.0
+Summary: Chaos Monkey for AI agents
+Requires-Python: >=3.12
+Requires-Dist: typer
+Requires-Dist: rich
+Requires-Dist: pydantic
+Requires-Dist: pydantic-settings
+Requires-Dist: pyyaml
+Requires-Dist: httpx
+Requires-Dist: langgraph>=0.0.1
+Requires-Dist: python-dotenv
+Provides-Extra: examples
+Requires-Dist: langchain-google-genai>=1.0.0; extra == "examples"

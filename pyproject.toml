@@ -1,0 +1,29 @@
+[project]
+name = "agent-breaker"
+version = "0.1.0"
+description = "Chaos Monkey for AI agents"
+requires-python = ">=3.12"
+dependencies = [
+    "typer",
+    "rich",
+    "pydantic",
+    "pydantic-settings",
+    "pyyaml",
+    "httpx",
+    "langgraph>=0.0.1",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+examples = [
+    "langchain-google-genai>=1.0.0",
+]
+
+[project.scripts]
+agent-breaker = "agent_breaker.main:app"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+agent_breaker = ["templates/*.yaml"]

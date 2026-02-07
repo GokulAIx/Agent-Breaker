@@ -1,0 +1,2 @@
+[console_scripts]
+agent-breaker = agent_breaker.main:app

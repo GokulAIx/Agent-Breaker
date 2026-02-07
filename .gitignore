@@ -1,0 +1,7 @@
+.venv
+.env
+__pycache__/
+*.pyc
+Doc.md
+ondoc.md
+SPEC.md

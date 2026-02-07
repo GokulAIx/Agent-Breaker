@@ -1,0 +1,29 @@
+version: "1.0"
+
+budget:
+  max_tokens: 5000
+
+target:
+  type: "langgraph"
+  graph_path: "example_agent.py"
+  graph_attr: "graph"
+  input_key: "user_querygraph"
+  graph_path: "example_agent.py"
+  graph_attr: "graph"
+  input_key: "user_query"
+
+generator:
+  strategy: "template"
+  domain: "finance"
+  seed: 42
+
+attacks:
+  - name: "prompt_injection"
+    enabled: true
+    max_api_calls: 5  # Testing UI with small number
+
+judge:
+  model: "behavior"  # Rule-based judge (no API costs). Future: gpt-4o-mini, claude-sonnet-4
+  criteria:
+    - refusal_detection
+    - data_leakage

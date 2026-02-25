@@ -26,8 +26,10 @@ class AgentBreaker:
     def _create_target(self) -> AgentTarget:
         """Create target from config."""
         if not self.config.target:
-            # Default to MockTarget if no target specified
-            return MockTarget()
+            raise ValueError(
+                "No target specified in breaker.yaml. "
+                "Add a 'target:' section with type, path, and other required fields."
+            )
         
         target_type = self.config.target.type.lower()
         system_prompt = self._get_system_prompt()
@@ -41,8 +43,11 @@ class AgentBreaker:
             return LangGraphTarget(
                 graph_path=self.config.target.path,
                 graph_attr=self.config.target.attr,
+                prompt_variable=self.config.target.prompt_variable,
                 input_key=self.config.target.input_key or "user_query",
-                system_prompt=system_prompt if system_prompt != "You are a helpful assistant." else None
+                output_key=self.config.target.output_key,
+                state_class=self.config.target.state_class,
+                system_prompt=self.config.target.system_prompt
             )
         
         elif target_type == "mock":

@@ -1,7 +1,36 @@
-.venv
-.env
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Environment & Secrets
+.env
+.env.local
+
+# User Configs (not templates)
+breaker.yaml
+example_breaker.yaml
+
+# Personal Docs
 Doc.md
 ondoc.md
-SPEC.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+test_results/
+*.log

@@ -10,7 +10,7 @@ class BudgetConfig(BaseModel):
 class AttackConfig(BaseModel):
     name: str
     enabled: bool = True
-    max_api_calls: int = Field(default=10, gt=0, description="Maximum API calls (payloads) for this attack")
+    max_api_calls: int = Field(default=5, gt=0, description="Maximum API calls (payloads) for this attack")
 
 
 class JudgeConfig(BaseModel):
@@ -28,12 +28,14 @@ class SystemPromptConfig(BaseModel):
 
 class TargetConfig(BaseModel):
     """Configuration for target agent."""
-    type: str  # langgraph, crewai, http, python
+    type: str  # langgraph, crewai
     path: Optional[str] = Field(None, validation_alias=AliasChoices('path', 'graph_path'))
     attr: Optional[str] = Field(None, validation_alias=AliasChoices('attr', 'graph_attr'))
-    input_key: Optional[str] = None
+    input_key: Optional[str] = None  # Field name for input in state (e.g., 'user_query', 'input', 'question')
+    output_key: Optional[str] = None  # Field name for output in state (e.g., 'response', 'output', 'answer')
+    state_class: Optional[str] = None  # Required for langgraph: name of state TypedDict class
     system_prompt: Optional[SystemPromptConfig] = None
-
+    prompt_variable: Optional[str]=None #should be present the same file as the compiled graph
 
 class GeneratorConfig(BaseModel):
     """Configuration for payload generator."""

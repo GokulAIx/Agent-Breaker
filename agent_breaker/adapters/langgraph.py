@@ -16,24 +16,33 @@ class LangGraphTarget(AgentTarget):
         self,
         graph_path: str,
         graph_attr: str,
+        prompt_variable: str,
         input_key: str = "user_query",
+        output_key: Optional[str] = None,
+        state_class: Optional[str] = None,
         system_prompt: Optional[str] = None
-    ):
+        ):
         """
         Initialize LangGraph target.
         
         Args:
             graph_path: Path to Python file containing compiled graph
             graph_attr: Attribute name of the compiled graph
+            prompt_variable: Name of the system prompt variable in the graph file
             input_key: Key to inject payload into initial state
+            output_key: Key to extract response from final state (if None, tries common keys)
+            state_class: Name of the TypedDict state class (e.g., 'AgentState')
             system_prompt: Optional system prompt (if not extractable from graph)
         """
         self.graph_path = Path(graph_path)
         self.graph_attr = graph_attr
         self.input_key = input_key
+        self.output_key = output_key
+        self.state_class = state_class
         self._system_prompt = system_prompt
         self.call_count = 0
         self.history = []
+        self.prompt_variable=prompt_variable
         
         # Load the graph
         self.graph = self._load_graph()
@@ -41,6 +50,9 @@ class LangGraphTarget(AgentTarget):
         # Try to extract system prompt if not provided
         if not self._system_prompt:
             self._system_prompt = self._extract_system_prompt()
+        
+        # Auto-detect initial state schema from graph
+        self._initial_state_schema = self._extract_initial_state_schema()
     
     def _load_graph(self):
         """Load compiled graph from file."""
@@ -79,11 +91,20 @@ class LangGraphTarget(AgentTarget):
         # 1. Check loaded module for SYSTEM_PROMPT variable
         if "user_graph" in sys.modules:
             module = sys.modules["user_graph"]
-            for attr_name in ['SYSTEM_PROMPT', 'system_prompt', 'SYSTEM_MESSAGE', 'PROMPT']:
-                if hasattr(module, attr_name):
-                    prompt = getattr(module, attr_name)
-                    if isinstance(prompt, str) and prompt:
-                        return prompt
+            if not hasattr(module,self.prompt_variable):
+                available_variables=[x for x in dir(module) if not x.startswith("_")]
+
+                raise AttributeError(
+                    f"- {self.prompt_variable} is not found in the file  \n"
+                    f"- These are the available variables (first 10) in the file {', '.join(available_variables[:10])}"
+
+                )
+
+
+
+            prompt=getattr(module,self.prompt_variable)
+            if isinstance(prompt,str) and prompt:
+                return prompt
         
         # 2. Check graph config
         if hasattr(self.graph, 'config') and isinstance(self.graph.config, dict):
@@ -103,6 +124,73 @@ class LangGraphTarget(AgentTarget):
         # Default fallback
         return "System prompt not extractable from graph"
     
+    def _extract_initial_state_schema(self) -> Dict[str, Any]:
+        """Extract initial state schema from graph's StateGraph definition."""
+        initial_state = {}
+        
+        try:
+            # Try to find the state class used by the graph
+            if "user_graph" not in sys.modules:
+                return initial_state
+            
+            module = sys.modules["user_graph"]
+            
+            # Use user-specified state class name
+            state_class_names = []
+            
+            if self.state_class:
+                # User specified state_class in config
+                state_class_names.append(self.state_class)
+            else:
+                # Fallback to common names if not specified (backwards compatibility)
+                state_class_names = ['AgentState', 'State', 'GraphState', 'MessagesState']
+            
+            state_class = None
+            
+            for name in state_class_names:
+                if hasattr(module, name):
+                    state_class = getattr(module, name)
+                    break
+            
+            if not state_class:
+                if self.state_class:
+                    # User specified a class that doesn't exist - give helpful error
+                    available = [x for x in dir(module) if not x.startswith('_')]
+                    raise ValueError(
+                        f"State class '{self.state_class}' not found in {self.graph_path}. "
+                        f"Available classes: {', '.join(available[:10])}"
+                    )
+                # Try to extract from graph itself or use empty state
+                if hasattr(self.graph, 'nodes') and hasattr(self.graph, '_schema'):
+                    # Some graphs expose schema
+                    return initial_state
+                return initial_state
+            
+            # Inspect the TypedDict annotations
+            if hasattr(state_class, '__annotations__'):
+                annotations = state_class.__annotations__
+                
+                for field_name, field_type in annotations.items():
+                    # Check if it's an Annotated type (used for reducers like operator.add)
+                    type_str = str(field_type)
+                    
+                    # Look for list fields with operator.add (accumulator pattern)
+                    if 'Annotated' in type_str and 'list' in type_str:
+                        # This is likely an accumulator field, initialize to empty list
+                        initial_state[field_name] = []
+                    elif 'list' in type_str.lower():
+                        # Plain list field, also initialize to empty
+                        initial_state[field_name] = []
+                    elif field_name == 'messages':
+                        # Common message accumulator field
+                        initial_state[field_name] = []
+                        
+        except Exception:
+            # Silently fail - we'll fall back to just input_key
+            pass
+        
+        return initial_state
+    
     def send(self, payload: str) -> str:
         """
         Send payload to LangGraph and return response.
@@ -119,11 +207,11 @@ class LangGraphTarget(AgentTarget):
         try:
             # Build input state with payload
             # CRITICAL: Reset state fields to ensure stateless execution
-            # If graph has 'messages' or other accumulator fields, they'll persist across calls
-            input_state = {
-                self.input_key: payload,
-                "messages": [],  # Reset conversation history
-            }
+            # Start with auto-detected initial state (empty accumulators)
+            input_state = self._initial_state_schema.copy()
+            
+            # Add the payload
+            input_state[self.input_key] = payload
             
             # Invoke graph with fresh state AND unique thread_id for isolation
             # thread_id ensures each invoke is truly independent (no state sharing)
@@ -173,31 +261,17 @@ class LangGraphTarget(AgentTarget):
             return result
         
         if isinstance(result, dict):
-            # Common output keys
-            for key in ['output', 'response', 'result', 'answer', 'messages']:
+            # Priority 1: User-specified output_key
+            if self.output_key and self.output_key in result:
+                value = result[self.output_key]
+                return self._extract_value_as_string(value)
+            
+            # Priority 2: Common output keys (fallback)
+            common_keys = ['output', 'response', 'result', 'answer', 'messages']
+            for key in common_keys:
                 if key in result:
                     value = result[key]
-                    
-                    # Handle messages list
-                    if isinstance(value, list) and value:
-                        last_msg = value[-1]
-                        if isinstance(last_msg, dict):
-                            # Check for nested text content (Gemini format)
-                            if 'text' in last_msg:
-                                return str(last_msg['text'])
-                            if 'content' in last_msg:
-                                content = last_msg['content']
-                                # Content might also be nested dict with 'text' key
-                                if isinstance(content, dict) and 'text' in content:
-                                    return str(content['text'])
-                                return str(content)
-                        return str(last_msg)
-                    
-                    # Handle nested dict with 'text' key (Gemini format)
-                    if isinstance(value, dict) and 'text' in value:
-                        return str(value['text'])
-                    
-                    return str(value)
+                    return self._extract_value_as_string(value)
             
             # Check top-level for 'text' key (direct Gemini format)
             if 'text' in result:
@@ -215,6 +289,29 @@ class LangGraphTarget(AgentTarget):
         
         # Last resort
         return str(result)
+    
+    def _extract_value_as_string(self, value: Any) -> str:
+        """Helper to extract string from various value formats."""
+        # Handle messages list
+        if isinstance(value, list) and value:
+            last_msg = value[-1]
+            if isinstance(last_msg, dict):
+                # Check for nested text content (Gemini format)
+                if 'text' in last_msg:
+                    return str(last_msg['text'])
+                if 'content' in last_msg:
+                    content = last_msg['content']
+                    # Content might also be nested dict with 'text' key
+                    if isinstance(content, dict) and 'text' in content:
+                        return str(content['text'])
+                    return str(content)
+            return str(last_msg)
+        
+        # Handle nested dict with 'text' key (Gemini format)
+        if isinstance(value, dict) and 'text' in value:
+            return str(value['text'])
+        
+        return str(value)
     
     def _extract_capabilities(self) -> Dict[str, Any]:
         """Extract agent capabilities from graph structure."""

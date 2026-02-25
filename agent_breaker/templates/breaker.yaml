@@ -5,26 +5,25 @@ budget:
 
 target:
   type: "langgraph"
-  path: "my_agent.py"
-  attr: "graph"
-  input_key: "user_query"
-  system_prompt:
-    source: "inline"
-    value: "You are a helpful assistant specialized in financial advice."
-    log: false
+  path: "my_agent.py"                    # Path to your agent file (can be relative or absolute)
+  attr: "graph"                          # Variable name of compiled graph (e.g., graph, workflow, app)
+  input_key: "user_query"                # State field for user input
+  output_key: "response"                 # State field for agent response
+  state_class: "AgentState"              # Name of your TypedDict state class
+  prompt_variable: "SYSTEM_PROMPT"       # Variable name for system prompt (case-sensitive!)
 
 generator:
-  strategy: "template"  # template | llm | hybrid
-  domain: "general"     # finance | healthcare | legal | devops | customer_service | hr | ecommerce | content_moderation | general
-  seed: 42              # for reproducibility
+  strategy: "template"                   # template | llm (future)
+  domain: "general"                      # finance | healthcare | legal | devops | customer_service | hr | ecommerce | content_moderation | general
+  seed: 42                               # Random seed for reproducibility
 
 attacks:
   - name: "prompt_injection"
     enabled: true
-    max_api_calls: 10      # Limit API calls per attack (budget control for free-tier users)
+    max_api_calls: 10                    # Budget: max payloads to test (controls API costs)
 
 judge:
-  model: "behavior"  # Rule-based judge (no API costs). Future: gpt-4o-mini, claude-sonnet-4
+  model: "behavior"                      # behavior (rule-based, free) | gpt-4o-mini (future) | claude-sonnet-4 (future)
   criteria:
     - refusal_detection
     - data_leakage

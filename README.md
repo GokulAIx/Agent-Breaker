@@ -2,23 +2,22 @@
 
 > Chaos Monkey for AI Agents - Automated adversarial testing for LangGraph applications
 
-[![Status](https://img.shields.io/badge/status-v0.1_ready-green)]()
-[![Python](https://img.shields.io/badge/python-3.10+-blue)]()
+[![PyPI](https://img.shields.io/badge/pypi-v0.1.2-blue)](https://pypi.org/project/agent-breaker/)
+[![Python](https://img.shields.io/badge/python-3.12+-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
+[![Downloads](https://img.shields.io/badge/downloads-PyPI-green)](https://pypi.org/project/agent-breaker/)
 
-## ✅ v0.1 Ready for Release
+## 🚀 v0.1.2 Live on PyPI
 
-Agent Breaker v0.1 is feature-complete! Template-based adversarial testing for LangGraph agents with 12 attack categories and domain-aware payloads.
+Agent Breaker is now available on PyPI! Install with `pip install agent-breaker` and start testing your agents in minutes.
 
-**Recent Updates:**
-- ✅ Mandatory prompt variable configuration
-- ✅ Pre-flight config validation with helpful errors
-- ✅ Dynamic module loading for any LangGraph agent
-- ✅ Capability auto-detection (tools, nodes)
-- ✅ Adversarial Instruction Attacks (12 template categories: prompt injection + goal hijacking)
-- ✅ Template-based payload generation (domain-aware, 9 domains)
-- ✅ End-to-end testing complete
-- ✅ Published to PyPI
+**What's Included:**
+- 🎯 12 adversarial attack categories (prompt injection + goal hijacking)
+- 🏥 9 domain vocabularies (finance, healthcare, legal, etc.)
+- 🔍 Automatic tool detection via Python introspection
+- ⚖️ Behavioral judge with negation-aware pattern matching
+- 📊 Rich CLI output with detailed vulnerability reports
+- ✅ Tested and verified - found real vulnerabilities in production-grade agents
 
 ---
 
@@ -139,12 +138,13 @@ judge:
 - No need to parse system prompt separately - it's already in the agent's context
 - Attacks test whether system prompt rules hold up against adversarial instructions
 
-**Known Limitations:**
-- Template-based approach may miss sophisticated attack vectors
-- Rule-based judge produces ~30% false positives (negation blindness)
-- Single-turn attacks only (no conversation-based manipulation)
+**Known Limitations (v0.1):**
+- Template-based generation may miss sophisticated attack vectors
+- Rule-based judge can produce false positives with complex negation patterns
+- Single-turn attacks only (no multi-message conversation manipulation)
+- LangGraph support only (other frameworks coming in future versions)
 
-**→ v0.2 Enhancement:** ML classifier judge (solves false positive problem), multi-turn attacks, more sophisticated payload patterns.
+**→ v0.2 will address:** ML classifier judge (semantic negation understanding), multi-turn attacks, advanced payload generation patterns.
 
 ---
 
@@ -188,11 +188,13 @@ Keyword matching is blind to negation and context. A trained classifier understa
 
 ---
 
-## Example Output
-## DEMO
+## Demo Video
 
+Watch Agent Breaker find a real vulnerability in a LangGraph finance agent:
 
 https://github.com/user-attachments/assets/353f1988-1dd2-4a7d-8496-793af9047af9
+
+## Example Output
 
 
 ```
@@ -316,45 +318,50 @@ Overall Summary
 - [x] Rich CLI reporting with tables
 - [x] Rate limit detection and graceful handling
 
-**v0.2 (Next Major Release):**
+**v0.2 (Q2 2026):**
 - [ ] **ML Classifier Judge** (primary focus - solves false positive problem)
-  - PyTorch FFN with SentenceTransformers embeddings (384D)
+  - PyTorch feedforward network with SentenceTransformers embeddings (384D)
   - 3-class output: REFUSAL / DISCUSSION / COMPLIANCE
-  - Trained on 100+ labeled agent responses
-  - ~50MB model, understands semantic negation
-- [ ] **Multi-turn conversation attacks** (build context over multiple interactions)
-- [ ] **Advanced payload patterns** (more sophisticated attack strategies)
-- [ ] Data collection system for training samples
-- [ ] Budget constraints (max_tokens, max_cost enforcement)
-- [ ] CrewAI adapter
-- [ ] Social engineering attack patterns
+  - Trained on 100+ labeled agent responses from v0.1 testing
+  - ~50MB model with semantic negation understanding
+- [ ] **Multi-turn conversation attacks** (context building over multiple messages)
+- [ ] **Advanced payload generation** (LLM-based contextual attacks)
+- [ ] **Budget enforcement** (max_tokens, max_cost tracking during tests)
+- [ ] **CrewAI adapter** (expand beyond LangGraph)
+- [ ] **Data collection mode** (save test results for ML training)
 
-**v1.0 (Vision):**
-- [ ] Support for all major frameworks (LangGraph, CrewAI, AutoGen, etc.)
-- [ ] Custom attack pattern definitions
-- [ ] Jailbreak detection
-- [ ] CI/CD integrations
+**v1.0 (Future Vision):**
+- [ ] Universal adapter system (LangGraph, CrewAI, AutoGen, custom frameworks)
+- [ ] Custom attack pattern DSL (define your own tests)
+- [ ] Jailbreak detection and testing
+- [ ] CI/CD plugins (GitHub Actions, GitLab CI)
+- [ ] Web dashboard for test history and trends
+- [ ] Team collaboration features (shared test configs)
 
 ---
 
 ## Contributing
 
-This is a solo project with v0.1 now complete. Contributions, ideas, and feedback are welcome!
+Agent Breaker is an open-source project. Contributions, ideas, and feedback are welcome!
 
-**Want to help?**
-- ⭐ Star the repo
-- 🐛 Report bugs
-- 💡 Suggest features
-- 📖 Improve documentation
+**Ways to contribute:**
+- ⭐ **Star the repo** - helps others discover the tool
+- 🐛 **Report bugs** - open issues with reproduction steps
+- 💡 **Suggest features** - share your ideas for improvements
+- 📖 **Improve docs** - fix typos, add examples, clarify concepts
+- 🧪 **Share test results** - help train v0.2 ML classifier
+- 🔌 **Add adapters** - support new agent frameworks
 
 ---
 
 ## Technical Details
 
 **Built With:**
-- Python 3.10+
-- Pydantic (config validation)
-- Typer (CLI)
+- Python 3.12+ (required for typing features)
+- Pydantic 2.x (config validation and settings)
+- Typer (CLI framework)
+- Rich (terminal output formatting)
+- LangGraph (agent framework support)
 
 **Key Concepts:**
 - Dynamic module loading (`importlib`)

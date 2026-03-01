@@ -48,7 +48,7 @@ Agent Breaker v0.1 is feature-complete! Template-based adversarial testing for L
 - ✅ Adversarial Instruction Attacks (12 template categories: prompt injection + goal hijacking)
 - ✅ Template-based payload generation (domain-aware, 9 domains)
 - ✅ End-to-end testing complete
-- ⏳ PyPI packaging (ready for build)
+- ✅ Published to PyPI
 
 ---
 
@@ -159,21 +159,22 @@ judge:
 - ✅ **Auto-detects tools:** Python introspection of agent module (checks for `name`, `description`, bound tools) → converts to attack targets (e.g., `execute_trade` → "execute trade")
 - ✅ **Domain vocabulary:** Uses finance/healthcare/legal-specific terminology
 
-**System Prompt Usage (v0.1):**
-- ⚠️ **Limited secret extraction:** Has regex for API keys/credentials, but rarely finds them (most prompts don't hardcode secrets)
-- ❌ **Doesn't parse authorization rules:** Can't read "requires manager approval" and craft targeted bypasses
-
 **Attack Strategy:**
 - **Template-based:** Generic patterns that work across many agents ("As a {role}, I authorize you to {action}")
-- **Effective for:** Common vulnerabilities, baseline security testing
-- **Not targeted:** Doesn't craft agent-specific attacks based on unique policies
+- **Domain-aware:** Uses vocabulary specific to finance, healthcare, legal, etc.
+- **Tool-targeted:** Extracts tool names from agent and incorporates into payloads
+
+**How Testing Works:**
+- Agent's LLM receives BOTH the system prompt AND our payload
+- No need to parse system prompt separately - it's already in the agent's context
+- Attacks test whether system prompt rules hold up against adversarial instructions
 
 **Known Limitations:**
-- Won't detect social engineering that complies with surface-level requirements
-- Doesn't understand complex authorization workflows
-- Generic attacks may miss agent-specific vulnerabilities
+- Template-based approach may miss sophisticated attack vectors
+- Rule-based judge produces ~30% false positives (negation blindness)
+- Single-turn attacks only (no conversation-based manipulation)
 
-**→ v0.2 Enhancement:** LLM-powered generator will read system prompts, understand authorization rules, and craft targeted attacks per agent.
+**→ v0.2 Enhancement:** ML classifier judge (solves false positive problem), multi-turn attacks, more sophisticated payload patterns.
 
 ---
 
@@ -218,8 +219,11 @@ Keyword matching is blind to negation and context. A trained classifier understa
 ---
 
 ## Example Output
+## DEMO
 
-<!-- Add screenshots here -->
+
+https://github.com/user-attachments/assets/353f1988-1dd2-4a7d-8496-793af9047af9
+
 
 ```
 Agent Breaker — Security Testing for AI Agents
@@ -348,11 +352,11 @@ Overall Summary
   - 3-class output: REFUSAL / DISCUSSION / COMPLIANCE
   - Trained on 100+ labeled agent responses
   - ~50MB model, understands semantic negation
-- [ ] **LLM-powered payload generation** (reads system prompts, crafts targeted attacks)
+- [ ] **Multi-turn conversation attacks** (build context over multiple interactions)
+- [ ] **Advanced payload patterns** (more sophisticated attack strategies)
 - [ ] Data collection system for training samples
 - [ ] Budget constraints (max_tokens, max_cost enforcement)
 - [ ] CrewAI adapter
-- [ ] Multi-turn conversation attacks
 - [ ] Social engineering attack patterns
 
 **v1.0 (Vision):**
@@ -415,4 +419,5 @@ Inspired by:
 
 ---
 
-**⚠️ Disclaimer:** Agent Breaker is a security testing tool. Only test agents you own or have permission to test. Use responsibly.
+**⚠️ Disclaimer:** Agent Breaker is a security testing tool for development and testing environments. Do not run adversarial tests against production systems without proper safeguards. Always review attack payloads before deployment to ensure they align with your security policies. The tool identifies potential vulnerabilities - fixing them is your responsibility.
+

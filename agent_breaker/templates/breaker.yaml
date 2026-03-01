@@ -23,7 +23,7 @@ attacks:
     max_api_calls: 10                    # Budget: max payloads to test (controls API costs)
 
 judge:
-  model: "behavior"                      # behavior (rule-based, free) | gpt-4o-mini (future) | claude-sonnet-4 (future)
+  model: "behaviour"                      # behavior (rule-based, free) | gpt-4o-mini (future) | claude-sonnet-4 (future)
   criteria:
     - refusal_detection
     - data_leakage

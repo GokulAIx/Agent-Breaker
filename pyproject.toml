@@ -2,7 +2,23 @@
 name = "agent-breaker"
 version = "0.1.0"
 description = "Chaos Monkey for AI agents"
+readme = "README.md"
 requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "P. Gokul Sree Chandra", email = "polavarapugokul@gmail.com"}
+]
+keywords = ["ai", "security", "testing", "llm", "agents", "langgraph", "adversarial", "prompt-injection"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Security",
+]
+
 dependencies = [
     "typer",
     "rich",
@@ -14,6 +30,11 @@ dependencies = [
     "python-dotenv",
 ]
 
+[project.urls]
+Homepage = "https://github.com/GokulAIx/Agent-Breaker"
+Repository = "https://github.com/GokulAIx/Agent-Breaker"
+Issues = "https://github.com/GokulAIx/Agent-Breaker/issues"
+
 [project.optional-dependencies]
 examples = [
     "langchain-google-genai>=1.0.0",
@@ -24,6 +45,10 @@ agent-breaker = "agent_breaker.main:app"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["examples", "examples.*", "tests", "tests.*"]
 
 [tool.setuptools.package-data]
 agent_breaker = ["templates/*.yaml"]

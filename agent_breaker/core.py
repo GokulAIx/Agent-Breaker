@@ -106,6 +106,7 @@ class AgentBreaker:
         console.print("[dim]Configuration:[/dim]")
         console.print(f"  Target: {target.__class__.__name__}")
         console.print(f"  Generator: {generator.__class__.__name__}")
+        console.print(f"  Domain: {self.config.generator.domain if self.config.generator else 'general'}")
         console.print(f"  Judge: {judge.__class__.__name__}")
         
         # Show API budget
@@ -128,7 +129,7 @@ class AgentBreaker:
                 console.print(f"[dim]⏭️  Skipping attack '{attack_cfg.name}' (rate limit already hit)[/dim]")
                 continue
 
-            attack_cls = ATTACK_REGISTRY.get(attack_cfg.name)
+            attack_cls = ATTACK_REGISTRY.get(attack_cfg.name.lower())
             if not attack_cls:
                 console.print(f"[yellow]⚠️  Unknown attack: {attack_cfg.name}[/yellow]")
                 continue

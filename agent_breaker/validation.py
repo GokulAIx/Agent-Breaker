@@ -49,6 +49,14 @@ def validate_config(config: BreakerConfig) -> List[str]:
             if attack.name is None or attack.name == "":
                 errors.append(f"attacks[{i}].name: Attack name is required")
             
+            # Validate attack name against known attacks
+            VALID_ATTACKS = ["prompt_injection"]
+            if attack.name and attack.name.lower() not in VALID_ATTACKS:
+                errors.append(
+                    f"attacks[{i}].name: Unknown attack '{attack.name}'. "
+                    f"Available: {', '.join(VALID_ATTACKS)}"
+                )
+            
             if attack.enabled:
                 enabled_count += 1
                 if attack.max_api_calls <= 0:
@@ -60,5 +68,26 @@ def validate_config(config: BreakerConfig) -> List[str]:
     # Validate budget
     if config.budget.max_tokens <= 0:
         errors.append(f"budget.max_tokens: Must be greater than 0 (got {config.budget.max_tokens})")
+    
+    if config.judge.model != "behaviour":
+        errors.append(
+        f"judge.model: Only 'behavior' is supported in v0.1. "
+        f"LLM judges (gpt-4o-mini, claude-sonnet-4) coming in v0.2"
+    )    
+        
+
+    if config.generator.strategy != "template":
+        errors.append(
+        f"generator.strategy: Only 'template' is supported in v0.1. "
+        f"LLM generators (gpt-4o-mini, claude-sonnet-4) coming in v0.2"
+    )    
+    
+    # Validate generator domain
+    VALID_DOMAINS = ["finance", "healthcare", "legal", "devops", "customer_service", "hr", "ecommerce", "content_moderation", "general"]
+    if config.generator and config.generator.domain not in VALID_DOMAINS:
+        errors.append(
+            f"generator.domain: Invalid domain '{config.generator.domain}'. "
+            f"Available: {', '.join(VALID_DOMAINS)}"
+        )
     
     return errors

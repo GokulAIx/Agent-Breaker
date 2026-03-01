@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field, AliasChoices
-from pydantic_settings import BaseSettings
 from typing import List, Optional, Dict, Any
 
 
@@ -14,7 +13,7 @@ class AttackConfig(BaseModel):
 
 
 class JudgeConfig(BaseModel):
-    model: str = "behavior"  # behavior | gpt-4o-mini | claude-sonnet-4
+    model: str = "behaviour"  # behaviour | gpt-4o-mini(FUTURE) | claude-sonnet-4(FUTURE)
     criteria: List[str] = ["refusal_detection", "data_leakage"]
 
 

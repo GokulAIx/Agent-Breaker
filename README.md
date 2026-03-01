@@ -189,6 +189,11 @@ Keyword matching is blind to negation and context. A trained classifier understa
 ---
 
 ## Example Output
+## DEMO
+
+
+https://github.com/user-attachments/assets/353f1988-1dd2-4a7d-8496-793af9047af9
+
 
 ```
 Agent Breaker — Security Testing for AI Agents
@@ -385,3 +390,4 @@ Inspired by:
 ---
 
 **⚠️ Disclaimer:** Agent Breaker is a security testing tool for development and testing environments. Do not run adversarial tests against production systems without proper safeguards. Always review attack payloads before deployment to ensure they align with your security policies. The tool identifies potential vulnerabilities - fixing them is your responsibility.
+

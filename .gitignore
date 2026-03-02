@@ -21,6 +21,8 @@ example_breaker.yaml
 Doc.md
 ondoc.md
 
+examples
+
 # IDE
 .vscode/
 .idea/

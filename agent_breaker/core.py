@@ -17,7 +17,6 @@ ATTACK_REGISTRY = {
     "prompt_injection": PromptInjectionAttack,
 }
 
-
 class AgentBreaker:
     def __init__(self, config: BreakerConfig):
         self.config = config
@@ -32,7 +31,6 @@ class AgentBreaker:
             )
         
         target_type = self.config.target.type.lower()
-        system_prompt = self._get_system_prompt()
         
         if target_type == "langgraph":
             from agent_breaker.adapters.langgraph import LangGraphTarget
@@ -50,8 +48,8 @@ class AgentBreaker:
                 system_prompt=self.config.target.system_prompt
             )
         
-        elif target_type == "mock":
-            return MockTarget(system_prompt=system_prompt)
+        # elif target_type == "mock":
+        #     return MockTarget(system_prompt=system_prompt)
         
         else:
             raise ValueError(f"Unsupported target type: {target_type}")

@@ -2,10 +2,11 @@
 
 > Chaos Monkey for AI Agents - Automated adversarial testing for LangGraph applications
 
+[![PyPI Downloads](https://img.shields.io/pypi/dm/agent-breaker?label=downloads%20(no%20mirrors))](https://pypistats.org/packages/agent-breaker)
+[![Total Downloads](https://static.pepy.tech/badge/agent-breaker)](https://pepy.tech/project/agent-breaker) 
 [![PyPI](https://img.shields.io/badge/pypi-v0.1.2-blue)](https://pypi.org/project/agent-breaker/)
 [![Python](https://img.shields.io/badge/python-3.12+-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-[![Downloads](https://img.shields.io/badge/downloads-PyPI-green)](https://pypi.org/project/agent-breaker/)
 
 ## 🚀 v0.1.2 Live on PyPI
 
@@ -397,4 +398,5 @@ Inspired by:
 ---
 
 **⚠️ Disclaimer:** Agent Breaker is a security testing tool for development and testing environments. Do not run adversarial tests against production systems without proper safeguards. Always review attack payloads before deployment to ensure they align with your security policies. The tool identifies potential vulnerabilities - fixing them is your responsibility.
+
 

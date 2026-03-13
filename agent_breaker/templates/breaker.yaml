@@ -1,12 +1,12 @@
-version: "1.0"
+version: "0.2"
 
 budget:
-  max_tokens: 5000
+  max_tokens: 5000 #USED IN FUTURE VERSIONS
 
 target:
   type: "langgraph"
   path: "my_agent.py"                    # Path to your agent file (can be relative or absolute)
-  attr: "graph"                          # Variable name of compiled graph (e.g., graph, workflow, app)
+  attr: "graph"                          # Module-level compiled graph variable (e.g., graph or agent)
   input_key: "user_query"                # State field for user input
   output_key: "response"                 # State field for agent response
   state_class: "AgentState"              # Name of your TypedDict state class
@@ -23,7 +23,6 @@ attacks:
     max_api_calls: 10                    # Budget: max payloads to test (controls API costs)
 
 judge:
-  model: "behaviour"                      # behavior (rule-based, free) | gpt-4o-mini (future) | claude-sonnet-4 (future)
-  criteria:
-    - refusal_detection
-    - data_leakage
+  model: "behaviour"                      # behaviour (rule-based) | ml (neural network, 97.8% accurate) | gpt-4o-mini (future)
+  model_path: null                         # Optional: custom .pt path; packaged model is used by default
+

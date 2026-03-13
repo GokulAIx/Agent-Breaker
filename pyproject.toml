@@ -1,6 +1,6 @@
 [project]
 name = "agent-breaker"
-version = "0.1.2"
+version = "0.2.0"
 description = "Chaos Monkey for AI agents"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -39,6 +39,10 @@ Issues = "https://github.com/GokulAIx/Agent-Breaker/issues"
 examples = [
     "langchain-google-genai>=1.0.0",
 ]
+ml = [
+    "torch>=2.2.0,<3",
+    "sentence-transformers>=2.6.0,<4",
+]
 
 [project.scripts]
 agent-breaker = "agent_breaker.main:app"
@@ -51,4 +55,4 @@ where = ["."]
 exclude = ["examples", "examples.*", "tests", "tests.*"]
 
 [tool.setuptools.package-data]
-agent_breaker = ["templates/*.yaml"]
+agent_breaker = ["templates/*.yaml", "*.pt"]

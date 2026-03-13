@@ -2,13 +2,14 @@ from agent_breaker.config import BreakerConfig
 from agent_breaker.attacks.prompt_injection import PromptInjectionAttack
 from agent_breaker.targets import MockTarget, AgentTarget
 from agent_breaker.generator import TemplateGenerator, PayloadGenerator
-from agent_breaker.judge import BehaviorJudge, Judge, JudgeVerdict
+from agent_breaker.judge import BehaviorJudge, MLJudge, Judge, JudgeVerdict
 from typing import Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
 from rich import box
+from agent_breaker.inspector import Inspector
 
 console = Console()
 
@@ -47,8 +48,10 @@ class AgentBreaker:
                 state_class=self.config.target.state_class,
                 system_prompt=self.config.target.system_prompt
             )
+
         
         # elif target_type == "mock":
+        
         #     return MockTarget(system_prompt=system_prompt)
         
         else:
@@ -69,9 +72,29 @@ class AgentBreaker:
     
     def _create_judge(self) -> Judge:
         """Create judge from config."""
-        # V1: Always use BehaviorJudge (rule-based)
-        # Future: Support optional LLM judge if user provides API key
-        return BehaviorJudge()
+        judge_model = self.config.judge.model.lower()
+        
+        if judge_model == "behaviour" or judge_model == "behavior":
+            return BehaviorJudge()
+        
+        elif judge_model == "ml" or judge_model == "neural":
+            model_path = self.config.judge.model_path
+            try:
+                return MLJudge(model_path=model_path)
+            except ImportError as e:
+                console.print(f"[yellow]⚠️  {e}[/yellow]")
+                console.print("[yellow]Falling back to BehaviorJudge (rule-based)[/yellow]\n")
+                return BehaviorJudge()
+            except FileNotFoundError:
+                missing_model = model_path or MLJudge.DEFAULT_MODEL_NAME
+                console.print(f"[yellow]⚠️  ML model not found: {missing_model}[/yellow]")
+                console.print("[yellow]Falling back to BehaviorJudge (rule-based)[/yellow]\n")
+                return BehaviorJudge()
+        
+        else:
+            console.print(f"[yellow]⚠️  Unknown judge model: {judge_model}[/yellow]")
+            console.print("[yellow]Falling back to BehaviorJudge (rule-based)[/yellow]\n")
+            return BehaviorJudge()
     
     def _get_system_prompt(self, target: Optional[AgentTarget] = None) -> str:
         """Extract system prompt from config or target."""
@@ -96,6 +119,8 @@ class AgentBreaker:
         
         # Create target, generator, and judge
         target = self._create_target()
+        inspector = Inspector(target)
+        inspector.print_report()
         generator = self._create_generator()
         judge = self._create_judge()
         system_prompt = self._get_system_prompt(target)
@@ -294,6 +319,53 @@ class AgentBreaker:
         
         console.print()
         console.print(summary_table)
+
+        failure_categories = {}
+        executed_tool_counts = {}
+        for result in self.results:
+            if not result.judge_result:
+                continue
+            category = result.judge_result.failure_category
+            if category:
+                failure_categories[category] = failure_categories.get(category, 0) + 1
+            for tool_name in result.judge_result.tool_calls:
+                executed_tool_counts[tool_name] = executed_tool_counts.get(tool_name, 0) + 1
+
+        if failure_categories:
+            console.print()
+            console.print("[bold]Failure Breakdown[/bold]")
+            failure_table = Table(
+                box=box.SIMPLE_HEAD,
+                show_header=True,
+                header_style="bold white",
+                expand=True,
+                padding=(0, 2)
+            )
+            failure_table.add_column("Category", style="white")
+            failure_table.add_column("Count", justify="right", style="bold red")
+
+            for category, count in sorted(failure_categories.items(), key=lambda item: (-item[1], item[0])):
+                failure_table.add_row(category.replace("_", " ").title(), str(count))
+
+            console.print(failure_table)
+
+        if executed_tool_counts:
+            console.print()
+            console.print("[bold]Executed Tools[/bold]")
+            tools_table = Table(
+                box=box.SIMPLE_HEAD,
+                show_header=True,
+                header_style="bold white",
+                expand=True,
+                padding=(0, 2)
+            )
+            tools_table.add_column("Tool", style="white")
+            tools_table.add_column("Executions", justify="right", style="dim yellow")
+
+            for tool_name, count in sorted(executed_tool_counts.items(), key=lambda item: (-item[1], item[0])):
+                tools_table.add_row(tool_name, str(count))
+
+            console.print(tools_table)
         
         # Simple rate limit/error notification
         if skipped > 0:

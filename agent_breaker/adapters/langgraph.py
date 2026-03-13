@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
 from agent_breaker.targets import AgentTarget
+from agent_breaker.tracer import ToolCallTracer
 
 
 class LangGraphTarget(AgentTarget):
@@ -43,6 +44,7 @@ class LangGraphTarget(AgentTarget):
         self.call_count = 0
         self.history = []
         self.prompt_variable=prompt_variable
+        self.last_tool_trace: Optional[ToolCallTracer] = None
         
         # Load the graph
         self.graph = self._load_graph()
@@ -66,12 +68,23 @@ class LangGraphTarget(AgentTarget):
         
         module = importlib.util.module_from_spec(spec)
         sys.modules["user_graph"] = module
-        spec.loader.exec_module(module)
+        try:
+            spec.loader.exec_module(module)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to import agent file '{self.graph_path}'\n"
+                f"  {type(exc).__name__}: {exc}\n"
+                f"  Make sure all packages used in your agent file are installed."
+            ) from None
         
         # Get graph attribute
         if not hasattr(module, self.graph_attr):
+            available_variables = [x for x in dir(module) if not x.startswith("_")]
             raise AttributeError(
-                f"Module {self.graph_path} does not have attribute '{self.graph_attr}'"
+                f"Module {self.graph_path} does not have attribute '{self.graph_attr}'.\n"
+                f"Available variables (first 15): {', '.join(available_variables[:15])}\n"
+                f"Set target.attr to your compiled graph variable (commonly: graph or agent).\n"
+                f"Example: graph = workflow.compile(); agent = graph"
             )
         
         graph = getattr(module, self.graph_attr)
@@ -127,69 +140,107 @@ class LangGraphTarget(AgentTarget):
     def _extract_initial_state_schema(self) -> Dict[str, Any]:
         """Extract initial state schema from graph's StateGraph definition."""
         initial_state = {}
-        
         try:
-            # Try to find the state class used by the graph
             if "user_graph" not in sys.modules:
                 return initial_state
-            
             module = sys.modules["user_graph"]
-            
-            # Use user-specified state class name
             state_class_names = []
-            
             if self.state_class:
-                # User specified state_class in config
                 state_class_names.append(self.state_class)
             else:
-                # Fallback to common names if not specified (backwards compatibility)
                 state_class_names = ['AgentState', 'State', 'GraphState', 'MessagesState']
-            
             state_class = None
-            
             for name in state_class_names:
                 if hasattr(module, name):
                     state_class = getattr(module, name)
                     break
-            
             if not state_class:
                 if self.state_class:
-                    # User specified a class that doesn't exist - give helpful error
                     available = [x for x in dir(module) if not x.startswith('_')]
                     raise ValueError(
                         f"State class '{self.state_class}' not found in {self.graph_path}. "
                         f"Available classes: {', '.join(available[:10])}"
                     )
-                # Try to extract from graph itself or use empty state
                 if hasattr(self.graph, 'nodes') and hasattr(self.graph, '_schema'):
-                    # Some graphs expose schema
                     return initial_state
                 return initial_state
-            
             # Inspect the TypedDict annotations
             if hasattr(state_class, '__annotations__'):
                 annotations = state_class.__annotations__
-                
                 for field_name, field_type in annotations.items():
-                    # Check if it's an Annotated type (used for reducers like operator.add)
                     type_str = str(field_type)
-                    
-                    # Look for list fields with operator.add (accumulator pattern)
-                    if 'Annotated' in type_str and 'list' in type_str:
-                        # This is likely an accumulator field, initialize to empty list
+                    # Annotated types (e.g., Annotated[Sequence[BaseMessage], operator.add])
+                    if 'Annotated' in type_str:
+                        if 'list' in type_str or 'Sequence' in type_str:
+                            initial_state[field_name] = []
+                        elif 'str' in type_str:
+                            initial_state[field_name] = ""
+                        elif 'int' in type_str:
+                            initial_state[field_name] = 0
+                        elif 'float' in type_str:
+                            initial_state[field_name] = 0.0
+                        elif 'dict' in type_str:
+                            initial_state[field_name] = {}
+                        else:
+                            initial_state[field_name] = None
+                    elif 'list' in type_str.lower() or 'Sequence' in type_str:
                         initial_state[field_name] = []
-                    elif 'list' in type_str.lower():
-                        # Plain list field, also initialize to empty
-                        initial_state[field_name] = []
-                    elif field_name == 'messages':
-                        # Common message accumulator field
-                        initial_state[field_name] = []
-                        
+                    elif 'str' in type_str:
+                        initial_state[field_name] = ""
+                    elif 'int' in type_str:
+                        initial_state[field_name] = 0
+                    elif 'float' in type_str:
+                        initial_state[field_name] = 0.0
+                    elif 'dict' in type_str:
+                        initial_state[field_name] = {}
+                    else:
+                        initial_state[field_name] = None
         except Exception:
-            # Silently fail - we'll fall back to just input_key
             pass
-        
+        print(initial_state)
         return initial_state
+
+    def _merge_state_update(self, result: Dict[str, Any], state_update: Dict[str, Any]) -> None:
+        """
+        Merge a streamed state update into Agent Breaker's local result accumulator.
+
+        This does NOT modify the user's graph state. It only reconstructs an observed
+        local view of streamed updates for response extraction and reporting.
+
+        Merge policy:
+        - `messages` lists are accumulated to preserve the full message history
+        - all other keys are overwritten with the latest value
+        """
+        for key, value in state_update.items():
+            if key == "messages" and isinstance(value, list):
+                existing = result.get("messages", [])
+                if not isinstance(existing, list):
+                    existing = []
+                result["messages"] = existing + value
+            else:
+                result[key] = value
+
+    def _build_input_value(self, payload: str) -> Any:
+        """
+        Build input value for configured input_key.
+
+        Special handling for `messages` input:
+        - Only apply list wrapping when detected state schema indicates `messages`
+          is list-like (to avoid assuming user schema).
+        - Otherwise keep raw payload unchanged.
+        """
+        if self.input_key != "messages":
+            return payload
+
+        messages_is_list_like = isinstance(self._initial_state_schema.get("messages"), list)
+        if not messages_is_list_like:
+            return payload
+
+        try:
+            from langchain_core.messages import HumanMessage
+            return [HumanMessage(content=payload)]
+        except Exception:
+            return [payload]
     
     def send(self, payload: str) -> str:
         """
@@ -205,18 +256,24 @@ class LangGraphTarget(AgentTarget):
         self.history.append(payload)
         
         try:
+            self.last_tool_trace = ToolCallTracer()
+
             # Build input state with payload
             # CRITICAL: Reset state fields to ensure stateless execution
             # Start with auto-detected initial state (empty accumulators)
             input_state = self._initial_state_schema.copy()
             
             # Add the payload
-            input_state[self.input_key] = payload
+            input_state[self.input_key] = self._build_input_value(payload)
             
             # Invoke graph with fresh state AND unique thread_id for isolation
             # thread_id ensures each invoke is truly independent (no state sharing)
             config = {"configurable": {"thread_id": f"test_{self.call_count}"}}
-            result = self.graph.invoke(input_state, config=config)
+            result = {}
+            for chunk in self.graph.stream(input_state, config=config, stream_mode="updates"):
+                self.last_tool_trace.capture(chunk)
+                for node_name, state_update in chunk.items():
+                    self._merge_state_update(result, state_update)
             
             # Extract response from result
             # LangGraph typically returns final state dict
@@ -225,6 +282,7 @@ class LangGraphTarget(AgentTarget):
             return response
             
         except Exception as e:
+            self.last_tool_trace = None
             # Detect rate limit errors across all providers
             error_str = str(e).lower()
             error_type = type(e).__name__
@@ -292,6 +350,20 @@ class LangGraphTarget(AgentTarget):
     
     def _extract_value_as_string(self, value: Any) -> str:
         """Helper to extract string from various value formats."""
+        def content_to_text(content: Any) -> str:
+            if isinstance(content, str):
+                return content
+            if isinstance(content, list):
+                text_parts = []
+                for item in content:
+                    if isinstance(item, dict) and "text" in item:
+                        text_parts.append(str(item["text"]))
+                    elif isinstance(item, str):
+                        text_parts.append(item)
+                if text_parts:
+                    return "\n".join(text_parts)
+            return str(content)
+
         # Handle messages list
         if isinstance(value, list) and value:
             last_msg = value[-1]
@@ -304,12 +376,18 @@ class LangGraphTarget(AgentTarget):
                     # Content might also be nested dict with 'text' key
                     if isinstance(content, dict) and 'text' in content:
                         return str(content['text'])
-                    return str(content)
+                    return content_to_text(content)
+            if hasattr(last_msg, 'content'):
+                return content_to_text(last_msg.content)
             return str(last_msg)
         
         # Handle nested dict with 'text' key (Gemini format)
         if isinstance(value, dict) and 'text' in value:
             return str(value['text'])
+
+        # Handle LangChain message objects directly
+        if hasattr(value, 'content'):
+            return content_to_text(value.content)
         
         return str(value)
     
@@ -320,6 +398,7 @@ class LangGraphTarget(AgentTarget):
             "nodes": [],
             "has_tools": False,
         }
+        seen_tools = set()
         
         try:
             # Get graph structure
@@ -348,22 +427,28 @@ class LangGraphTarget(AgentTarget):
                     if hasattr(attr, 'name') and hasattr(attr, 'description'):
                         tool_name = getattr(attr, 'name', attr_name)
                         tool_desc = getattr(attr, 'description', 'No description')
-                        
-                        capabilities["tools"].append({
-                            "name": tool_name,
-                            "description": tool_desc
-                        })
-                        capabilities["has_tools"] = True
+
+                        tool_key = (str(tool_name), str(tool_desc))
+                        if tool_key not in seen_tools:
+                            capabilities["tools"].append({
+                                "name": tool_name,
+                                "description": tool_desc
+                            })
+                            seen_tools.add(tool_key)
+                            capabilities["has_tools"] = True
                     
                     # Check for lists of tools (common pattern: tools = [tool1, tool2])
                     elif isinstance(attr, list) and attr:
                         for item in attr:
                             if hasattr(item, 'name') and hasattr(item, 'description'):
-                                capabilities["tools"].append({
-                                    "name": item.name,
-                                    "description": item.description
-                                })
-                                capabilities["has_tools"] = True
+                                tool_key = (str(item.name), str(item.description))
+                                if tool_key not in seen_tools:
+                                    capabilities["tools"].append({
+                                        "name": item.name,
+                                        "description": item.description
+                                    })
+                                    seen_tools.add(tool_key)
+                                    capabilities["has_tools"] = True
                 
                 # Check for ToolNode in graph
                 for node_name in user_nodes:

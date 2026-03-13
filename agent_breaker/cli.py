@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import typer
 import importlib.resources as resources
 import yaml
@@ -26,21 +27,36 @@ def init(force: bool = False):
 
 
 @app.command()
-def run(config: Path = Path("breaker.yaml")):
+def run(
+    config: Path = typer.Argument(Path("breaker.yaml"), help="Path to breaker.yaml"),
+    debug: bool = typer.Option(False, "--debug", help="Show full traceback on errors"),
+    full_output: bool = typer.Option(False, "--full-output", help="Show full payload and model response text in terminal output"),
+):
     """Run Agent Breaker"""
+    _debug = debug or bool(os.environ.get("AGENT_BREAKER_DEBUG"))
+    if full_output:
+        os.environ["AGENT_BREAKER_FULL_OUTPUT"] = "1"
+
     if not config.exists():
         typer.echo("❌ Config file not found.")
         raise typer.Exit(1)
-    
+
     data = yaml.safe_load(config.read_text())
     cfg = BreakerConfig(**data)
 
-    errors=validate_config(cfg)
+    errors = validate_config(cfg)
     if errors:
         typer.echo("Errors in the configuration file: Breaker.yaml")
-        for i,error in enumerate(errors):
+        for i, error in enumerate(errors):
             typer.echo(f"{i+1}: {error}")
         raise typer.Exit(1)
 
-    breaker = AgentBreaker(cfg)
-    breaker.run()
+    try:
+        breaker = AgentBreaker(cfg)
+        breaker.run()
+    except Exception as exc:
+        if _debug:
+            raise
+        typer.echo(f"\n❌ {type(exc).__name__}: {exc}")
+        typer.echo("   Run with --debug or set AGENT_BREAKER_DEBUG=1 for full traceback.")
+        raise typer.Exit(1)

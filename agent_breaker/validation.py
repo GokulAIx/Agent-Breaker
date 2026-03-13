@@ -1,5 +1,7 @@
 from pathlib import Path
 from typing import List
+import importlib.util
+from importlib import resources
 from agent_breaker.config import BreakerConfig
 
 
@@ -69,17 +71,47 @@ def validate_config(config: BreakerConfig) -> List[str]:
     if config.budget.max_tokens <= 0:
         errors.append(f"budget.max_tokens: Must be greater than 0 (got {config.budget.max_tokens})")
     
-    if config.judge.model != "behaviour":
+    judge_model = config.judge.model.lower()
+    valid_judges = ["behaviour", "behavior", "ml", "neural"]
+    if judge_model not in valid_judges:
         errors.append(
-        f"judge.model: Only 'behavior' is supported in v0.1. "
-        f"LLM judges (gpt-4o-mini, claude-sonnet-4) coming in v0.2"
-    )    
+            f"judge.model: Invalid judge '{config.judge.model}'. "
+            f"Available: behaviour, ml"
+        )
+
+    if judge_model in ["ml", "neural"]:
+        missing_packages = []
+
+        if importlib.util.find_spec("torch") is None:
+            missing_packages.append("torch")
+
+        if importlib.util.find_spec("sentence_transformers") is None:
+            missing_packages.append("sentence-transformers")
+
+        if missing_packages:
+            errors.append(
+                "judge.model: ML judge selected but optional ML dependencies are not installed. "
+                "Run: pip install agent-breaker[ml] "
+                f"(missing: {', '.join(missing_packages)})"
+            )
+
+        if config.judge.model_path and not Path(config.judge.model_path).exists():
+            errors.append(
+                f"judge.model_path: File '{config.judge.model_path}' does not exist"
+            )
+        elif not config.judge.model_path:
+            packaged_model = resources.files("agent_breaker").joinpath("agent_breaker_ml_classifier.pt")
+            if not packaged_model.is_file():
+                errors.append(
+                    "judge.model: Bundled ML model is missing from the package. "
+                    "Reinstall agent-breaker[ml] or provide judge.model_path explicitly."
+                )
         
 
     if config.generator.strategy != "template":
         errors.append(
-        f"generator.strategy: Only 'template' is supported in v0.1. "
-        f"LLM generators (gpt-4o-mini, claude-sonnet-4) coming in v0.2"
+        f"generator.strategy: Only 'template' is currently supported. "
+        f"LLM generators are planned for a future version"
     )    
     
     # Validate generator domain

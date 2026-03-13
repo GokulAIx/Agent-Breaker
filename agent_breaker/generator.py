@@ -208,17 +208,18 @@ class TemplateGenerator(PayloadGenerator):
             # Fall back to domain defaults
             active_vocab = self.vocab
         
-        candidates = []
+        candidates_by_class = {}
         
         # Generate payloads from ALL templates across all attack classes
         for attack_class, templates in self.TEMPLATES.items():
+            candidates_by_class[attack_class] = []
             for template in templates:  # Use ALL template variations
                 # Perform substitutions with active vocabulary
                 substitutions = self._get_substitutions(attack_class, active_vocab)
                 try:
                     payload = template.format(**substitutions)
                     
-                    candidates.append(PayloadCandidate(
+                    candidates_by_class[attack_class].append(PayloadCandidate(
                         payload=payload,
                         attack_class=attack_class,
                         template=template,
@@ -234,12 +235,41 @@ class TemplateGenerator(PayloadGenerator):
                 except KeyError as e:
                     # Skip templates that can't be filled with current vocab
                     continue
+
+        candidates = self._interleave_candidates_evenly(candidates_by_class)
         
         # Respect max_candidates budget (API call limit)
         if max_candidates is not None and len(candidates) > max_candidates:
             candidates = candidates[:max_candidates]
         
         return candidates
+
+    def _interleave_candidates_evenly(
+        self,
+        candidates_by_class: Dict[str, List[PayloadCandidate]]
+    ) -> List[PayloadCandidate]:
+        """Return candidates in round-robin order across attack classes."""
+        interleaved_candidates = []
+        ordered_classes = [
+            attack_class
+            for attack_class, class_candidates in candidates_by_class.items()
+            if class_candidates
+        ]
+        candidate_index = 0
+
+        while ordered_classes:
+            remaining_classes = []
+            for attack_class in ordered_classes:
+                class_candidates = candidates_by_class[attack_class]
+                if candidate_index < len(class_candidates):
+                    interleaved_candidates.append(class_candidates[candidate_index])
+                if candidate_index + 1 < len(class_candidates):
+                    remaining_classes.append(attack_class)
+
+            ordered_classes = remaining_classes
+            candidate_index += 1
+
+        return interleaved_candidates
     
     def _build_capability_vocab(self, capabilities: Dict[str, Any], system_prompt: str) -> Dict[str, list]:
         """Build vocabulary from agent's actual capabilities."""

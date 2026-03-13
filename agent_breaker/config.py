@@ -13,8 +13,9 @@ class AttackConfig(BaseModel):
 
 
 class JudgeConfig(BaseModel):
-    model: str = "behaviour"  # behaviour | gpt-4o-mini(FUTURE) | claude-sonnet-4(FUTURE)
+    model: str = "behaviour"  # behaviour | ml | gpt-4o-mini(FUTURE) | claude-sonnet-4(FUTURE)
     criteria: List[str] = ["refusal_detection", "data_leakage"]
+    model_path: Optional[str] = None  # Optional override path; bundled package model is used by default
 
 
 class SystemPromptConfig(BaseModel):

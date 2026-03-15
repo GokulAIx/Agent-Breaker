@@ -8,6 +8,8 @@
 [![Python](https://img.shields.io/badge/python-3.12+-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
+## 🔥 v0.2 will be Live Very Soon!
+
 ## 🚀 v0.1.2 Live on PyPI
 
 Agent Breaker is now available on PyPI! Install with `pip install agent-breaker` and start testing your agents in minutes.

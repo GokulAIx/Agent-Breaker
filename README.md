@@ -18,7 +18,7 @@
 
 **[Complete Documentation](agent_breaker/docs/COMPLETE_PROJECT_REFERENCE.md)** 📖
 
-**[Download PDF Guide](https://github.com/GokulAIx/Agent-Breaker/blob/main/docs/Agent_Breaker_Reference.pdf)** ⬇️
+
 
 **[ML Judge Setup Guide](ML_JUDGE_SETUP.md)** – Neural network classifier (97.8% accurate)
 

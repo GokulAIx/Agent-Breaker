@@ -5,7 +5,7 @@
 Agent Breaker v0.2 includes a **machine learning judge** with **97.8% accuracy** on contrast patterns and negation detection. It uses:
 - **Sentence-Transformers** for text embeddings (all-MiniLM-L6-v2)
 - **PyTorch neural network** (feedforward classifier)
-- **Hybrid approach**: ML (97.8%) + rule-based override (2.2%) = **~100% accuracy**
+- **Hybrid approach**: ML (97.8%) + rule-based override
 
 ## Installation
 

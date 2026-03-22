@@ -20,7 +20,7 @@
 
 
 
-**[ML Judge Setup Guide](agent_breaker/docs/COMPLETE_PROJECT_REFERENCE.md/ML_JUDGE_SETUP.md)** – Neural network classifier (97.8% accurate)
+**[ML Judge Setup Guide](agent_breaker/docs/ML_JUDGE_SETUP.md)** – Neural network classifier (97.8% accurate)
 
 **Need Help?** [Open an Issue](https://github.com/GokulAIx/Agent-Breaker/issues) | [Start a Discussion](https://github.com/GokulAIx/Agent-Breaker/discussions)
 

@@ -7,7 +7,6 @@
 [![PyPI](https://img.shields.io/badge/pypi-v0.2.0-blue)](https://pypi.org/project/agent-breaker/)
 [![Python](https://img.shields.io/badge/python-3.12+-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
-
 ---
 
 ## 📚 Documentation
@@ -640,4 +639,6 @@ Built by **P. Gokul Sree Chandra**
 
 
 
+<<<<<<< HEAD
 **⚠️ Disclaimer:** Agent Breaker is a security testing tool for development and testing environments. Do not run adversarial tests against production systems without proper safeguards. Always review attack payloads before deployment to ensure they align with your security policies. The tool identifies potential vulnerabilities - fixing them is your responsibility. The authors are not liable for any misuse of this tool.
+=======

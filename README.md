@@ -20,7 +20,7 @@
 
 
 
-**[ML Judge Setup Guide](ML_JUDGE_SETUP.md)** – Neural network classifier (97.8% accurate)
+**[ML Judge Setup Guide](agent_breaker/docs/COMPLETE_PROJECT_REFERENCE.md/ML_JUDGE_SETUP.md)** – Neural network classifier (97.8% accurate)
 
 **Need Help?** [Open an Issue](https://github.com/GokulAIx/Agent-Breaker/issues) | [Start a Discussion](https://github.com/GokulAIx/Agent-Breaker/discussions)
 
@@ -84,7 +84,11 @@ Agent Breaker focuses on **behavioral outcomes**, not attack taxonomy.
 
 Watch Agent Breaker find a real vulnerability in a LangGraph finance agent:
 
-https://github.com/user-attachments/assets/353f1988-1dd2-4a7d-8496-793af9047af9
+
+
+https://github.com/user-attachments/assets/b2099577-15f2-46f0-9701-c8d730b3f597
+
+
 
 ---
 

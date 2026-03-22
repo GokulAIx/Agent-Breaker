@@ -3,26 +3,11 @@ from agent_breaker.config import BreakerConfig
 from agent_breaker.judge import Judge, JudgeResult, JudgeVerdict
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
-import os
 from rich.console import Console
+from rich.syntax import Syntax
 from rich.panel import Panel
 
 console = Console()
-
-
-def _full_output_enabled() -> bool:
-    """Return whether full payload/response output should be shown."""
-    return os.environ.get("AGENT_BREAKER_FULL_OUTPUT", "").strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _render_text(label: str, text: str) -> None:
-    """Render either truncated or full text for terminal output."""
-    if _full_output_enabled():
-        console.print(Panel(text or "", title=label, border_style="dim", expand=False))
-        return
-
-    preview = text if len(text) <= 100 else text[:97] + "..."
-    console.print(f"  [dim]{label}:[/dim] {preview}")
 
 
 @dataclass
@@ -66,11 +51,22 @@ class PromptInjectionAttack:
         Returns:
             AttackResult with judge verdict
         """
-        _render_text("Payload", payload)
+
+        import os
+        full_output = os.environ.get("AGENT_BREAKER_FULL_OUTPUT") == "1"
+        if full_output:
+            console.print(f"  [dim]Payload:[/dim] {payload}")
+        else:
+            payload_preview = payload if len(payload) <= 100 else payload[:97] + "..."
+            console.print(f"  [dim]Payload:[/dim] {payload_preview}")
 
         response = target.send(payload)
 
-        _render_text("Response", response)
+        if full_output:
+            console.print(f"  [dim]Response:[/dim] {response}")
+        else:
+            response_preview = response if len(response) <= 100 else response[:97] + "..."
+            console.print(f"  [dim]Response:[/dim] {response_preview}")
 
         # Use judge to evaluate response
         judge_result = judge.evaluate(
@@ -85,12 +81,17 @@ class PromptInjectionAttack:
         verdict_styles = {
             JudgeVerdict.PASS: "[dim green]✓ Pass[/dim green]",
             JudgeVerdict.WARN: "[dim yellow]⚠ Warn[/dim yellow]",
+            JudgeVerdict.INFO: "[dim blue]ℹ Info[/dim blue]",
             JudgeVerdict.FAIL: "[bold red]✗ Fail[/bold red]",
             JudgeVerdict.SKIP: "[dim bright_black]○ Skip[/dim bright_black]"
         }
         verdict_str = verdict_styles.get(judge_result.verdict, "[white]? Unknown[/white]")
         reason_short = judge_result.behavior_class.lower().replace('_', ' ')
         console.print(f"  {verdict_str} [dim]({reason_short})[/dim]")
+
+        # Show tool execution status
+        tool_executed = bool(judge_result.tool_calls)
+        console.print(f"  [dim]Tool Executed:[/dim] {'Yes' if tool_executed else 'No'}")
 
         if judge_result.failure_category:
             console.print(f"  [dim red]Category:[/dim red] [dim]{judge_result.failure_category.replace('_', ' ')}[/dim]")

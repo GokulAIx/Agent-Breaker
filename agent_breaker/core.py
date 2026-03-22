@@ -206,12 +206,13 @@ class AgentBreaker:
         total = len(self.results)
         failed = sum(1 for r in self.results if r.judge_result and r.judge_result.verdict == JudgeVerdict.FAIL)
         warned = sum(1 for r in self.results if r.judge_result and r.judge_result.verdict == JudgeVerdict.WARN)
+        info = sum(1 for r in self.results if r.judge_result and r.judge_result.verdict == JudgeVerdict.INFO)
         skipped = sum(1 for r in self.results if r.judge_result and r.judge_result.verdict == JudgeVerdict.SKIP)
-        passed = total - failed - warned - skipped
+        passed = total - failed - warned - info - skipped
         
         # Group results by attack class
         from collections import defaultdict
-        by_class = defaultdict(lambda: {"pass": 0, "warn": 0, "fail": 0, "skip": 0})
+        by_class = defaultdict(lambda: {"pass": 0, "warn": 0, "info": 0, "fail": 0, "skip": 0})
         
         for result in self.results:
             if result.judge_result:
@@ -221,6 +222,8 @@ class AgentBreaker:
                     by_class[attack_class]["pass"] += 1
                 elif verdict == JudgeVerdict.WARN:
                     by_class[attack_class]["warn"] += 1
+                elif verdict == JudgeVerdict.INFO:
+                    by_class[attack_class]["info"] += 1
                 elif verdict == JudgeVerdict.FAIL:
                     by_class[attack_class]["fail"] += 1
                 elif verdict == JudgeVerdict.SKIP:
@@ -235,10 +238,11 @@ class AgentBreaker:
             padding=(0, 2)
         )
         details_table.add_column("Category", style="white", no_wrap=True)
-        details_table.add_column("Pass", justify="center", style="dim green")
-        details_table.add_column("Warn", justify="center", style="dim yellow")
-        details_table.add_column("Fail", justify="center", style="dim red")
-        details_table.add_column("Skip", justify="center", style="dim bright_black")
+        details_table.add_column("Pass", justify="center", style="dim green", no_wrap=True)
+        details_table.add_column("Warn", justify="center", style="dim yellow", no_wrap=True)
+        details_table.add_column("Info", justify="center", style="dim blue", no_wrap=True)
+        details_table.add_column("Fail", justify="center", style="dim red", no_wrap=True)
+        details_table.add_column("Skip", justify="center", style="dim bright_black", no_wrap=True)
         details_table.add_column("Status", justify="center", no_wrap=True)
         
         # Sort by attack class name for consistent display
@@ -248,10 +252,12 @@ class AgentBreaker:
             display_name = attack_class.replace("_", " ").title()
             
             # Determine overall result for this category
-            total_in_category = counts["pass"] + counts["warn"] + counts["fail"] + counts["skip"]
+            total_in_category = counts["pass"] + counts["warn"] + counts["info"] + counts["fail"] + counts["skip"]
             
             if counts["fail"] > 0:
                 result_text = "[bold red]Vulnerable[/bold red]"
+            elif counts["info"] > 0:
+                result_text = "[dim blue]Needs Review[/dim blue]"
             elif counts["warn"] > 0:
                 result_text = "[dim yellow]Review[/dim yellow]"
             elif counts["skip"] == total_in_category:
@@ -265,6 +271,7 @@ class AgentBreaker:
                 display_name,
                 str(counts["pass"]),
                 str(counts["warn"]),
+                str(counts["info"]),
                 str(counts["fail"]),
                 str(counts["skip"]),
                 result_text
@@ -303,6 +310,12 @@ class AgentBreaker:
                 "Warned",
                 f"[dim yellow]{warned}[/dim yellow]",
                 f"[dim yellow]{(warned/total*100):.0f}%[/dim yellow]"
+            )
+        if info > 0:
+            summary_table.add_row(
+                "Info",
+                f"[dim blue]{info}[/dim blue]",
+                f"[dim blue]{(info/total*100):.0f}%[/dim blue]"
             )
         if failed > 0:
             summary_table.add_row(
@@ -380,20 +393,27 @@ class AgentBreaker:
                 console.print(f"[dim yellow]⚠ API Error:[/dim yellow] {api_errors} test(s) failed due to API errors")
                 console.print(f"[dim]  → Check API key, network connectivity, or service status[/dim]")
         
-        # Simple final assessment
+        # Final non-binary summary (ratios + percentages)
         console.print()
-        
-        if skipped == total:
-            console.print("[bold red]✗ No Tests Completed[/bold red] [dim]— all skipped due to errors[/dim]")
-        elif failed > 0:
-            console.print(f"[bold red]✗ Vulnerable[/bold red] [dim]— {failed} test(s) failed[/dim]")
-        elif warned > 0:
-            console.print(f"[dim yellow]⚠ Review Needed[/dim yellow] [dim]— {warned} ambiguous response(s)[/dim]")
-        elif passed > 0 and skipped > 0:
-            console.print(f"[dim green]✓ Partial Pass[/dim green] [dim]— {passed} passed, {skipped} skipped[/dim]")
-        elif passed > 0:
-            console.print(f"[bold green]✓ All Passed[/bold green] [dim]— agent defended against {passed} attack(s)[/dim]")
-        else:
+
+        if total == 0:
             console.print("[dim]No results[/dim]")
+        else:
+            passed_pct = (passed / total) * 100
+            warned_pct = (warned / total) * 100
+            info_pct = (info / total) * 100
+            failed_pct = (failed / total) * 100
+            skipped_pct = (skipped / total) * 100
+
+            console.print(
+                "[bold]Summary:[/bold] "
+                f"[dim green]{passed}/{total} passed[/dim green], "
+                f"[dim yellow]{warned}/{total} warned[/dim yellow], "
+                f"[dim blue]{info}/{total} info[/dim blue], "
+                f"[bold red]{failed}/{total} failed[/bold red], "
+                f"[dim]{skipped}/{total} skipped[/dim] "
+                f"[dim]({passed_pct:.0f}% secure, {failed_pct:.0f}% potential vulnerability, "
+                f"{warned_pct:.0f}% review, {info_pct:.0f}% info, {skipped_pct:.0f}% not tested)[/dim]"
+            )
         
         console.print()

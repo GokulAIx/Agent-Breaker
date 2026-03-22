@@ -2,7 +2,7 @@
 name = "agent-breaker"
 version = "0.2.0"
 description = "Chaos Monkey for AI agents"
-readme = "README.md"
+readme = "README-pypi.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
@@ -34,6 +34,7 @@ dependencies = [
 Homepage = "https://github.com/GokulAIx/Agent-Breaker"
 Repository = "https://github.com/GokulAIx/Agent-Breaker"
 Issues = "https://github.com/GokulAIx/Agent-Breaker/issues"
+GitHub = "https://github.com/GokulAIx"
 
 [project.optional-dependencies]
 examples = [

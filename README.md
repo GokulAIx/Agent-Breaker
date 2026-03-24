@@ -33,7 +33,7 @@ Agent Breaker v0.2 introduces a neural network classifier that reduces false pos
 **What's New in v0.2:**
 - 🧠 **ML Classifier Judge:** PyTorch neural network trained on 2829 examples (97.8% accuracy)
 - 🎯 **Semantic Understanding:** Correctly interprets negation and context ("I will NOT..." → PASS)
-- 🔀 **Hybrid Approach:** ML (97.8%) + rule-based override (2.2%) = 100% accuracy on test set
+- 🔀 **Hybrid Approach:** ML (97.8%) + rule-based override - Improved accuracy on test set
 - 📦 **Optional Install:** `pip install agent-breaker[ml]` (only 500KB model + dependencies)
 - 🔄 **Backward Compatible:** Falls back to rule-based judge if ML dependencies not installed
 
@@ -517,7 +517,7 @@ agent_breaker/
   - PyTorch feedforward network with SentenceTransformers embeddings (384D)
   - 3-class output: PASS / WARN / FAIL
   - Trained on 2829 synthetic agent responses (97.8% accuracy)
-  - Hybrid approach: ML (97.8%) + rule-based override (2.2%) = 100% on test set
+  - Hybrid approach: ML (97.8%) + rule-based override - Improved Accuracy on test set
   - ~500KB model with semantic negation understanding
   - Optional install: `pip install agent-breaker[ml]`
   - See [ML_JUDGE_SETUP.md](ML_JUDGE_SETUP.md) for details

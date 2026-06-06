@@ -145,7 +145,7 @@ pip install -e .[ml]
 **Next Steps:**
 - [Understand Configuration](#configuration)
 - [Interpret Results](#example-output)
-- [Set Up ML Judge](ML_JUDGE_SETUP.md)
+- [Set Up ML Judge](agent_breaker/docs/ML_JUDGE_SETUP.md)
 - [Explore Example Agents](examples/)
 
 ---

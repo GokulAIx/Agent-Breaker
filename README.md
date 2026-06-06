@@ -632,6 +632,5 @@ Built by **P. Gokul Sree Chandra**
 
 
 
-<<<<<<< HEAD
 **⚠️ Disclaimer:** Agent Breaker is a security testing tool for development and testing environments. Do not run adversarial tests against production systems without proper safeguards. Always review attack payloads before deployment to ensure they align with your security policies. The tool identifies potential vulnerabilities - fixing them is your responsibility. The authors are not liable for any misuse of this tool.
-=======
+

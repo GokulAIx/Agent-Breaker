@@ -6,6 +6,9 @@
 [![PyPI](https://img.shields.io/badge/pypi-v0.2.0-blue)](https://pypi.org/project/agent-breaker/)
 [![Python](https://img.shields.io/badge/python-3.12+-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
+<a href="https://www.producthunt.com/products/agent-breaker?utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-agent-breaker">
+  <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1173963&theme=dark" width="180" alt="Agent Breaker - Product Hunt">
+</a>
 ---
 
 ## 📚 Documentation
